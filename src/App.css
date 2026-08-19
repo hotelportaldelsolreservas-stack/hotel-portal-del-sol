@@ -1,0 +1,439 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f7f5f0;
+  color: #000000;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.header {
+  height: 80px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 7%;
+  border-bottom: 1px solid #e8e4dc;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  height: 70px;
+}
+
+.logo img {
+  width: 190px;
+  height: auto;
+  display: block;
+}
+
+nav {
+  display: flex;
+  gap: 30px;
+  font-size: 14px;
+}
+
+nav a:hover {
+  color: #a47732;
+}
+
+.hero {
+  min-height: 620px;
+  display: flex;
+  align-items: center;
+  padding: 80px 7%;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.65),
+      rgba(0, 0, 0, 0.15)
+    ),
+    linear-gradient(135deg, #9d8c72, #d8c9ae);
+}
+
+.hero-content {
+  max-width: 650px;
+  color: white;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  margin-bottom: 15px;
+}
+
+.hero h2 {
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 1.05;
+  margin-bottom: 25px;
+}
+
+.hero-content > p:not(.eyebrow) {
+  font-size: 18px;
+  line-height: 1.7;
+  max-width: 560px;
+  margin-bottom: 35px;
+}
+
+.primary-button,
+.reserve-button {
+  border: none;
+  cursor: pointer;
+  background: #a47732;
+  color: white;
+  padding: 14px 25px;
+  border-radius: 6px;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.primary-button:hover,
+.reserve-button:hover {
+  background: #8d6427;
+  transform: translateY(-1px);
+}
+
+.rooms-section {
+  padding: 100px 7%;
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.section-title h2 {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.section-title > p:last-child {
+  color: #777;
+}
+
+.rooms {
+  max-width: 1100px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+}
+
+.room-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.room-image {
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ddd5c7;
+  font-size: 80px;
+}
+
+.room-info {
+  padding: 28px;
+}
+
+.available {
+  display: inline-block;
+  color: #287c42;
+  background: #e5f5e9;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.room-info h3 {
+  font-size: 25px;
+  margin-bottom: 10px;
+}
+
+.room-info p {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.room-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  color: #555;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.hotel-section {
+  padding: 100px 7%;
+  background: #e9e2d6;
+}
+
+.hotel-section > div {
+  max-width: 700px;
+  margin: auto;
+  text-align: center;
+}
+
+.hotel-section h2 {
+  font-size: 42px;
+  margin-bottom: 20px;
+}
+
+.hotel-section p:not(.eyebrow) {
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 12px;
+}
+
+footer {
+  background: #252525;
+  color: white;
+  text-align: center;
+  padding: 50px 20px;
+}
+
+footer h3 {
+  margin-bottom: 10px;
+}
+
+footer p {
+  color: #aaa;
+}
+
+@media (max-width: 800px) {
+  .header {
+    padding: 0 5%;
+  }
+
+  nav {
+    display: none;
+  }
+
+  .hero {
+    min-height: 550px;
+    padding: 60px 7%;
+  }
+
+  .rooms {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   MODAL DE RESERVA
+========================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.reservation-modal {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: white;
+  border-radius: 14px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.close-button {
+  position: absolute;
+  top: 15px;
+  right: 18px;
+  border: none;
+  background: transparent;
+  font-size: 30px;
+  cursor: pointer;
+  color: #555;
+}
+
+.modal-logo {
+  width: 210px;
+  max-width: 80%;
+  display: block;
+  margin: 0 auto 20px;
+}
+
+.reservation-modal h2 {
+  text-align: center;
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.modal-description {
+  text-align: center;
+  color: #777;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.capacity-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f7f1e6;
+  border: 1px solid #e4d4b8;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 25px;
+}
+
+.capacity-box span {
+  color: #666;
+  font-size: 14px;
+}
+
+.capacity-box strong {
+  color: #a47732;
+  font-size: 18px;
+}
+
+.reservation-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.reservation-modal input {
+  width: 100%;
+  border: 1px solid #d8d3ca;
+  border-radius: 7px;
+  padding: 13px 14px;
+  font-size: 16px;
+  outline: none;
+  background: #ffffff;
+  color: #000000;
+  caret-color: #000000;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.reservation-modal input::placeholder {
+  color: #777777;
+  opacity: 1;
+}
+
+.reservation-modal input:focus {
+  border-color: #a47732;
+  box-shadow: 0 0 0 2px rgba(164, 119, 50, 0.1);
+  color: #000000;
+}
+
+.date-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.reservation-error {
+  background: #fff0f0;
+  border: 1px solid #e3aaaa;
+  color: #a52828;
+  border-radius: 7px;
+  padding: 13px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.submit-reservation {
+  border: none;
+  cursor: pointer;
+  background: #a47732;
+  color: white;
+  padding: 15px;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.submit-reservation:hover {
+  background: #8d6427;
+}
+
+@media (max-width: 600px) {
+
+  .reservation-modal {
+    padding: 30px 20px;
+  }
+
+  .date-fields {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+.section-title h2,
+.section-title p,
+.room-info h3,
+.room-info p,
+.room-details,
+.hotel-section h2,
+.hotel-section p,
+footer h3 {
+  color: #000000;
+}
+
+/* =========================
+   GALERÍA
+========================= */
+
+.gallery-section {
+  padding: 100px 7%;
+  background: #ffffff;
+}
+
+.gallery {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.gallery img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+@media (max-width: 700px) {
+  .gallery {
+    grid-template-columns: 1fr;
+  }
+}
