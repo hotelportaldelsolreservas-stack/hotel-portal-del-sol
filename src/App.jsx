@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import CalendarPicker from "./CalendarPicker";
+import { supabase } from "./supabase";
 
 const CAPACIDAD_TOTAL = 36;
-
 
 function App() {
   const [reservaAbierta, setReservaAbierta] = useState(false);
   const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  const [capacidadDisponible, setCapacidadDisponible] =
+    useState(null);
+
+  const [consultandoCapacidad, setConsultandoCapacidad] =
+    useState(false);
 
   const [formulario, setFormulario] = useState({
     nombre: "",
@@ -17,12 +24,47 @@ function App() {
     salida: "",
   });
 
-  // Por ahora está vacío.
-  // Más adelante estos datos vendrán de la base de datos.
-  const personasReservadas = 0;
+  async function consultarCapacidad(entrada, salida) {
+    if (!entrada || !salida || salida <= entrada) {
+      setCapacidadDisponible(null);
+      return;
+    }
 
-  const capacidadDisponible =
-    CAPACIDAD_TOTAL - personasReservadas;
+    setConsultandoCapacidad(true);
+    setCapacidadDisponible(null);
+
+    const { data, error: errorSupabase } =
+      await supabase.rpc("capacidad_disponible", {
+        p_fecha_ingreso: entrada,
+        p_fecha_salida: salida,
+      });
+
+    setConsultandoCapacidad(false);
+
+    if (errorSupabase) {
+      console.error(
+        "Error consultando capacidad:",
+        errorSupabase
+      );
+
+      setError(
+        "No pudimos consultar la capacidad disponible."
+      );
+
+      setCapacidadDisponible(null);
+
+      return;
+    }
+
+    setCapacidadDisponible(Number(data));
+  }
+
+  useEffect(() => {
+    consultarCapacidad(
+      formulario.entrada,
+      formulario.salida
+    );
+  }, [formulario.entrada, formulario.salida]);
 
   function actualizarFormulario(e) {
     const { name, value } = e.target;
@@ -37,15 +79,17 @@ function App() {
 
   function abrirReserva() {
     setError("");
+    setCapacidadDisponible(null);
     setReservaAbierta(true);
   }
 
   function cerrarReserva() {
     setReservaAbierta(false);
     setError("");
+    setCapacidadDisponible(null);
   }
 
-  function enviarReserva(e) {
+  async function enviarReserva(e) {
     e.preventDefault();
 
     const personas = Number(formulario.personas);
@@ -66,7 +110,9 @@ function App() {
     }
 
     if (!formulario.entrada || !formulario.salida) {
-      setError("Seleccioná la fecha de entrada y salida.");
+      setError(
+        "Seleccioná la fecha de entrada y salida."
+      );
       return;
     }
 
@@ -77,21 +123,102 @@ function App() {
       return;
     }
 
-    if (personas > capacidadDisponible) {
+    if (capacidadDisponible === null) {
       setError(
-        "Capacidad de personas excedida. No hay capacidad disponible para la cantidad de personas seleccionada."
+        "Esperá a que se consulte la capacidad disponible."
       );
       return;
     }
 
-    // Todavía no enviamos la reserva al servidor.
-    // Eso lo conectaremos con la base de datos en el próximo paso.
+    if (capacidadDisponible <= 0) {
+      setError(
+        "No hay capacidad disponible para esas fechas."
+      );
+      return;
+    }
 
-    alert(
-      "Solicitud de reserva preparada correctamente. En el próximo paso la conectaremos con el servidor del hotel."
-    );
+    if (personas > capacidadDisponible) {
+      setError(
+        `Para esas fechas quedan ${capacidadDisponible} personas disponibles.`
+      );
+      return;
+    }
 
-    cerrarReserva();
+    setEnviando(true);
+    setError("");
+
+    try {
+      const { error: errorSupabase } =
+        await supabase.rpc("crear_reserva", {
+          p_nombre_completo:
+            formulario.nombre.trim(),
+
+          p_email:
+            formulario.email.trim(),
+
+          p_cantidad_huespedes:
+            personas,
+
+          p_fecha_ingreso:
+            formulario.entrada,
+
+          p_fecha_salida:
+            formulario.salida,
+        });
+
+      if (errorSupabase) {
+        console.error(
+          "Error de Supabase:",
+          errorSupabase
+        );
+
+        const mensaje =
+          errorSupabase.message || "";
+
+        if (
+          mensaje.includes(
+            "No hay capacidad suficiente"
+          )
+        ) {
+          setError(mensaje);
+        } else {
+          setError(
+            "No pudimos enviar la reserva. Por favor, intentá nuevamente."
+          );
+        }
+
+        return;
+      }
+
+      alert(
+        "¡Solicitud de reserva enviada correctamente! El hotel recibió tus datos."
+      );
+
+      setFormulario({
+        nombre: "",
+        email: "",
+        personas: "",
+        entrada: "",
+        salida: "",
+      });
+
+      setCapacidadDisponible(null);
+
+      cerrarReserva();
+
+    } catch (error) {
+      console.error(
+        "Error inesperado:",
+        error
+      );
+
+      setError(
+        "Ocurrió un error al enviar la reserva. Por favor, intentá nuevamente."
+      );
+
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -100,12 +227,16 @@ function App() {
       {/* HEADER */}
 
       <header className="header">
+
         <div className="logo">
+
           <img
             src="/logo.png"
             alt="Hotel Portal del Sol"
           />
+
         </div>
+
       </header>
 
 
@@ -115,7 +246,11 @@ function App() {
 
         {/* HERO */}
 
-        <section id="inicio" className="hero">
+        <section
+          id="inicio"
+          className="hero"
+        >
+
           <div className="hero-content">
 
             <p className="eyebrow">
@@ -141,6 +276,7 @@ function App() {
             </button>
 
           </div>
+
         </section>
 
 
@@ -173,7 +309,6 @@ function App() {
 
             <article className="room-card">
 
-
               <div className="room-info">
 
                 <h3>
@@ -189,9 +324,8 @@ function App() {
                 <div className="room-details">
 
                   <span>
-                     Capacidad total del hotel: 36 personas
+                    Capacidad total del hotel: 36 personas
                   </span>
-
 
                 </div>
 
@@ -245,23 +379,54 @@ function App() {
 
       </main>
 
+
+      {/* GALERÍA */}
+
       <section className="gallery-section">
+
         <div className="section-title">
-          <p className="eyebrow">CONOCÉ NUESTRO HOTEL</p>
+
+          <p className="eyebrow">
+            CONOCÉ NUESTRO HOTEL
+          </p>
 
           <p>
             Conocé algunos espacios de Hotel Portal del Sol.
           </p>
+
         </div>
 
         <div className="gallery">
-          <img src="/imagen1.jpg" alt="Hotel Portal del Sol - Imagen 1" />
-          <img src="/imagen2.jpg" alt="Hotel Portal del Sol - Imagen 2" />
-          <img src="/imagen3.jpg" alt="Hotel Portal del Sol - Imagen 3" />
-          <img src="/imagen4.jpg" alt="Hotel Portal del Sol - Imagen 4" />
-          <img src="/imagen5.jpg" alt="Hotel Portal del Sol - Imagen 5" />
+
+          <img
+            src="/imagen1.jpg"
+            alt="Hotel Portal del Sol - Imagen 1"
+          />
+
+          <img
+            src="/imagen2.jpg"
+            alt="Hotel Portal del Sol - Imagen 2"
+          />
+
+          <img
+            src="/imagen3.jpg"
+            alt="Hotel Portal del Sol - Imagen 3"
+          />
+
+          <img
+            src="/imagen4.jpg"
+            alt="Hotel Portal del Sol - Imagen 4"
+          />
+
+          <img
+            src="/imagen5.jpg"
+            alt="Hotel Portal del Sol - Imagen 5"
+          />
+
         </div>
+
       </section>
+
 
       {/* FOOTER */}
 
@@ -289,9 +454,11 @@ function App() {
             <button
               className="close-button"
               onClick={cerrarReserva}
+              disabled={enviando}
             >
               ×
             </button>
+
 
             <img
               className="modal-logo"
@@ -299,9 +466,11 @@ function App() {
               alt="Hotel Portal del Sol"
             />
 
+
             <h2>
               Solicitar reserva
             </h2>
+
 
             <p className="modal-description">
               Completá los siguientes datos para enviar
@@ -309,22 +478,39 @@ function App() {
             </p>
 
 
+            {/* CAPACIDAD */}
+
             <div className="capacity-box">
 
               <span>
-                Capacidad disponible
+                {capacidadDisponible === null
+                  ? "Capacidad disponible"
+                  : "Capacidad disponible para estas fechas"}
               </span>
 
               <strong>
-                {capacidadDisponible} personas
+
+                {consultandoCapacidad
+                  ? "Consultando..."
+                  : capacidadDisponible === null
+                    ? "Seleccioná las fechas"
+                    : `${capacidadDisponible} ${
+                        capacidadDisponible === 1
+                          ? "persona"
+                          : "personas"
+                      }`}
+
               </strong>
 
             </div>
 
 
-            <form onSubmit={enviarReserva}>
+            <form
+              onSubmit={enviarReserva}
+            >
 
               <label>
+
                 Nombre
 
                 <input
@@ -334,10 +520,14 @@ function App() {
                   onChange={actualizarFormulario}
                   placeholder="Tu nombre"
                   autoComplete="name"
+                  disabled={enviando}
                 />
+
               </label>
 
+
               <label>
+
                 Email
 
                 <input
@@ -347,10 +537,14 @@ function App() {
                   onChange={actualizarFormulario}
                   placeholder="tu@email.com"
                   autoComplete="email"
+                  disabled={enviando}
                 />
+
               </label>
 
+
               <label>
+
                 ¿Cuántas personas?
 
                 <input
@@ -359,61 +553,97 @@ function App() {
                   value={formulario.personas}
                   onChange={actualizarFormulario}
                   min="1"
-                  max="36"
+                  max={
+                    capacidadDisponible !== null &&
+                    capacidadDisponible > 0
+                      ? capacidadDisponible
+                      : 36
+                  }
                   placeholder="Cantidad de personas"
+                  disabled={
+                    enviando ||
+                    capacidadDisponible === 0
+                  }
                 />
+
               </label>
+
 
               <div className="date-fields">
 
                 <CalendarPicker
-                label="Fecha de entrada"
-                value={formulario.entrada}
+                  label="Fecha de entrada"
+                  value={formulario.entrada}
                   onChange={(fecha) => {
+
                     setFormulario((anterior) => ({
                       ...anterior,
                       entrada: fecha,
                       salida:
                         anterior.salida &&
                         anterior.salida < fecha
-                        ? ""
-                        : anterior.salida,
+                          ? ""
+                          : anterior.salida,
                     }));
 
-                  setError("");
-                }}
+                    setError("");
+
+                  }}
                 />
+
 
                 <CalendarPicker
                   label="Fecha de salida"
                   value={formulario.salida}
                   minDate={formulario.entrada}
                   onChange={(fecha) => {
-                  setFormulario((anterior) => ({
-                    ...anterior,
-                    salida: fecha,
-                  }));
 
-                  setError("");
-                }}
+                    setFormulario((anterior) => ({
+                      ...anterior,
+                      salida: fecha,
+                    }));
+
+                    setError("");
+
+                  }}
                 />
 
               </div>
 
-              {error && (
+
+              {capacidadDisponible === 0 && (
                 <div className="reservation-error">
-                ⚠️ {error}
+                  ⚠️ No hay capacidad disponible para esas fechas.
+                  Seleccioná otras fechas.
                 </div>
               )}
+
+
+              {error && (
+                <div className="reservation-error">
+                  ⚠️ {error}
+                </div>
+              )}
+
 
               <button
                 type="submit"
                 className="submit-reservation"
+                disabled={
+                  enviando ||
+                  consultandoCapacidad ||
+                  capacidadDisponible === 0
+                }
               >
-                Enviar solicitud
+
+                {enviando
+                  ? "Enviando reserva..."
+                  : "Enviar solicitud"}
+
               </button>
 
             </form>
+
           </div>
 
         </div>
