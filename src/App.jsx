@@ -477,6 +477,10 @@ function App() {
               tu solicitud al hotel.
             </p>
 
+            <p>
+              📍 Av. Pellegrini 127 - Frías - Santiago del Estero - Argentina
+            </p>
+
 
             {/* CAPACIDAD */}
 
