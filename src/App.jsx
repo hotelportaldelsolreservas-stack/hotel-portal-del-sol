@@ -205,7 +205,6 @@ function App() {
       setCapacidadDisponible(null);
 
       cerrarReserva();
-
     } catch (error) {
       console.error(
         "Error inesperado:",
@@ -215,7 +214,6 @@ function App() {
       setError(
         "Ocurrió un error al enviar la reserva. Por favor, intentá nuevamente."
       );
-
     } finally {
       setEnviando(false);
     }
@@ -478,7 +476,7 @@ function App() {
             </p>
 
             <p>
-              📍 Av. Pellegrini 127 - Frías - Santiago del Estero - Argentina
+              Av. Pellegrini 127 - Frías - Santiago Del Estero - Argentina
             </p>
 
 
