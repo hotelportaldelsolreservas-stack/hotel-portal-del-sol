@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import "./App.css";
 import CalendarPicker from "./CalendarPicker";
@@ -5,11 +6,24 @@ import { supabase } from "./supabase";
 
 const CAPACIDAD_TOTAL = 36;
 
+// Completá con el número del hotel en formato internacional.
+// Ejemplo: 549385XXXXXXX
+const WHATSAPP_NUMERO = "";
+
+const DIRECCION_HOTEL =
+  "Av. Pellegrini 127 - Frías - Santiago del Estero - Argentina";
+
+const MAPS_URL =
+  "https://www.google.com/maps/place/Hotel+Portal+del+Sol/@-28.628912,-65.1342087,17z/data=!3m1!4b1!4m10!3m9!1s0x9425a84fa17b9011:0x3071ce42bb005e4d!5m3!1s2026-11-24!4m1!1i2!8m2!3d-28.628912!4d-65.1316338!16s%2Fg%2F1tdksx5c?entry=ttu&g_ep=EgoyMDI2MTExMC4wIKXMDSoASAFQAw%3D%3D" +
+  encodeURIComponent(DIRECCION_HOTEL);
+
 function App() {
   const [reservaAbierta, setReservaAbierta] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  // La capacidad se utiliza internamente.
+  // Nunca se muestra su valor al huésped.
   const [capacidadDisponible, setCapacidadDisponible] =
     useState(null);
 
@@ -48,11 +62,10 @@ function App() {
       );
 
       setError(
-        "No pudimos consultar la capacidad disponible."
+        "No pudimos verificar la disponibilidad. Intentá nuevamente."
       );
 
       setCapacidadDisponible(null);
-
       return;
     }
 
@@ -109,10 +122,13 @@ function App() {
       return;
     }
 
+    if (personas > CAPACIDAD_TOTAL) {
+      setError("Ingresá una cantidad válida de personas.");
+      return;
+    }
+
     if (!formulario.entrada || !formulario.salida) {
-      setError(
-        "Seleccioná la fecha de entrada y salida."
-      );
+      setError("Seleccioná la fecha de entrada y salida.");
       return;
     }
 
@@ -123,23 +139,28 @@ function App() {
       return;
     }
 
+    if (consultandoCapacidad) {
+      setError("Esperá un momento e intentá nuevamente.");
+      return;
+    }
+
     if (capacidadDisponible === null) {
       setError(
-        "Esperá a que se consulte la capacidad disponible."
+        "No pudimos verificar la disponibilidad. Volvé a seleccionar las fechas."
       );
       return;
     }
 
     if (capacidadDisponible <= 0) {
       setError(
-        "No hay capacidad disponible para esas fechas."
+        "No hay disponibilidad para las fechas seleccionadas. Elegí otras fechas."
       );
       return;
     }
 
     if (personas > capacidadDisponible) {
       setError(
-        `Para esas fechas quedan ${capacidadDisponible} personas disponibles.`
+        "No hay disponibilidad suficiente para la cantidad de huéspedes seleccionada."
       );
       return;
     }
@@ -150,20 +171,11 @@ function App() {
     try {
       const { error: errorSupabase } =
         await supabase.rpc("crear_reserva", {
-          p_nombre_completo:
-            formulario.nombre.trim(),
-
-          p_email:
-            formulario.email.trim(),
-
-          p_cantidad_huespedes:
-            personas,
-
-          p_fecha_ingreso:
-            formulario.entrada,
-
-          p_fecha_salida:
-            formulario.salida,
+          p_nombre_completo: formulario.nombre.trim(),
+          p_email: formulario.email.trim(),
+          p_cantidad_huespedes: personas,
+          p_fecha_ingreso: formulario.entrada,
+          p_fecha_salida: formulario.salida,
         });
 
       if (errorSupabase) {
@@ -172,15 +184,14 @@ function App() {
           errorSupabase
         );
 
-        const mensaje =
-          errorSupabase.message || "";
+        const mensaje = errorSupabase.message || "";
 
         if (
-          mensaje.includes(
-            "No hay capacidad suficiente"
-          )
+          mensaje.includes("No hay capacidad suficiente")
         ) {
-          setError(mensaje);
+          setError(
+            "No hay disponibilidad suficiente para las fechas seleccionadas."
+          );
         } else {
           setError(
             "No pudimos enviar la reserva. Por favor, intentá nuevamente."
@@ -203,13 +214,9 @@ function App() {
       });
 
       setCapacidadDisponible(null);
-
       cerrarReserva();
     } catch (error) {
-      console.error(
-        "Error inesperado:",
-        error
-      );
+      console.error("Error inesperado:", error);
 
       setError(
         "Ocurrió un error al enviar la reserva. Por favor, intentá nuevamente."
@@ -219,6 +226,12 @@ function App() {
     }
   }
 
+  const whatsappUrl = WHATSAPP_NUMERO
+    ? `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(
+        "Hola, quisiera realizar una consulta sobre el Hotel Portal del Sol."
+      )}`
+    : "";
+
   return (
     <div className="app">
 
@@ -226,17 +239,29 @@ function App() {
 
       <header className="header">
 
-        <div className="logo">
-
+        <a className="logo" href="#inicio">
           <img
             src="/logo.png"
             alt="Hotel Portal del Sol"
           />
+        </a>
 
-        </div>
+        <nav className="main-nav">
+          <a href="#inicio">Inicio</a>
+          <a href="#habitaciones">Habitaciones</a>
+          <a href="#hotel">El hotel</a>
+          <a href="#galeria">Galería</a>
+          <a href="#contacto">Contacto</a>
+        </nav>
+
+        <button
+          className="header-reserve"
+          onClick={abrirReserva}
+        >
+          Reservar
+        </button>
 
       </header>
-
 
       {/* CONTENIDO */}
 
@@ -277,7 +302,6 @@ function App() {
 
         </section>
 
-
         {/* HABITACIONES */}
 
         <section
@@ -301,7 +325,6 @@ function App() {
             </p>
 
           </div>
-
 
           <div className="rooms">
 
@@ -342,7 +365,6 @@ function App() {
 
         </section>
 
-
         {/* HOTEL */}
 
         <section
@@ -377,16 +399,22 @@ function App() {
 
       </main>
 
-
       {/* GALERÍA */}
 
-      <section className="gallery-section">
+      <section
+        id="galeria"
+        className="gallery-section"
+      >
 
         <div className="section-title">
 
           <p className="eyebrow">
             CONOCÉ NUESTRO HOTEL
           </p>
+
+          <h2>
+            Nuestros espacios
+          </h2>
 
           <p>
             Conocé algunos espacios de Hotel Portal del Sol.
@@ -399,47 +427,220 @@ function App() {
           <img
             src="/imagen1.jpg"
             alt="Hotel Portal del Sol - Imagen 1"
+            loading="lazy"
           />
 
           <img
             src="/imagen2.jpg"
             alt="Hotel Portal del Sol - Imagen 2"
+            loading="lazy"
           />
 
           <img
             src="/imagen3.jpg"
             alt="Hotel Portal del Sol - Imagen 3"
+            loading="lazy"
           />
 
           <img
             src="/imagen4.jpg"
             alt="Hotel Portal del Sol - Imagen 4"
+            loading="lazy"
           />
 
           <img
             src="/imagen5.jpg"
             alt="Hotel Portal del Sol - Imagen 5"
+            loading="lazy"
           />
 
         </div>
 
       </section>
 
+      {/* CONTACTO */}
+
+      <section className="contact-section">
+
+        <div className="contact-inner">
+
+          <div className="contact-heading">
+
+            <p className="eyebrow">
+              ESTAMOS PARA AYUDARTE
+            </p>
+
+            <h2>
+              Contactate con nosotros
+            </h2>
+
+            <p>
+              Estamos a disposición para ayudarte con tu estadía.
+            </p>
+
+          </div>
+
+          <div className="contact-cards">
+
+            <article className="contact-card">
+
+              <span className="contact-icon">⌖</span>
+
+              <h3>
+                Visitá el hotel
+              </h3>
+
+              <p>
+                {DIRECCION_HOTEL}
+              </p>
+
+              <a
+                href={MAPS_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Cómo llegar ↗
+              </a>
+
+            </article>
+
+            {whatsappUrl && (
+
+              <article className="contact-card">
+
+                <span className="contact-icon">✆</span>
+
+                <h3>
+                  WhatsApp
+                </h3>
+
+                <p>
+                  Escribinos directamente para realizar tu consulta.
+                </p>
+
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Contactar por WhatsApp ↗
+                </a>
+
+              </article>
+
+            )}
+
+            <article className="contact-card">
+
+              <span className="contact-icon">▣</span>
+
+              <h3>
+                Reservas
+              </h3>
+
+              <p>
+                Enviá tu solicitud desde nuestra página.
+              </p>
+
+              <button
+                type="button"
+                onClick={abrirReserva}
+              >
+                Solicitar reserva →
+              </button>
+
+            </article>
+
+          </div>
+
+        </div>
+
+      </section>
 
       {/* FOOTER */}
 
-      <footer id="contacto">
+      <footer
+        id="contacto"
+        className="footer"
+      >
 
-        <h3>
-          Hotel Portal del Sol
-        </h3>
+        <div className="footer-main">
 
-        <p>
-          Gracias por elegirnos.
-        </p>
+          <div className="footer-brand">
+
+            <img
+              src="/logo.png"
+              alt="Hotel Portal del Sol"
+            />
+
+            <p>
+              Gracias por elegirnos.
+            </p>
+
+          </div>
+
+          <div className="footer-location">
+
+            <h3>
+              Ubicación
+            </h3>
+
+            <p>
+              {DIRECCION_HOTEL}
+            </p>
+
+            <a
+              href={MAPS_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Ver en Google Maps ↗
+            </a>
+
+          </div>
+
+          <div className="footer-links">
+
+            <h3>
+              Enlaces rápidos
+            </h3>
+
+            <a href="#inicio">Inicio</a>
+            <a href="#habitaciones">Habitaciones</a>
+            <a href="#galeria">Galería</a>
+            <a href="#contacto">Contacto</a>
+
+          </div>
+
+        </div>
+
+        <div className="footer-bottom">
+
+          <p>
+            © {new Date().getFullYear()} Hotel Portal del Sol.
+            Todos los derechos reservados.
+          </p>
+
+        </div>
 
       </footer>
 
+      {/* BOTÓN FLOTANTE DE WHATSAPP */}
+
+      {whatsappUrl && (
+
+        <a
+          className="whatsapp-float"
+          href={whatsappUrl}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Contactar por WhatsApp"
+          title="Contactar por WhatsApp"
+        >
+          ✆
+        </a>
+
+      )}
 
       {/* MODAL DE RESERVA */}
 
@@ -457,55 +658,30 @@ function App() {
               ×
             </button>
 
-
             <img
               className="modal-logo"
               src="/logo.png"
               alt="Hotel Portal del Sol"
             />
 
-
             <h2>
               Solicitar reserva
             </h2>
-
 
             <p className="modal-description">
               Completá los siguientes datos para enviar
               tu solicitud al hotel.
             </p>
 
-            <p>
-              Av. Pellegrini 127 - Frías - Santiago Del Estero - Argentina
+            <p className="modal-address">
+              <a
+                href={MAPS_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {DIRECCION_HOTEL} · Ver mapa
+              </a>
             </p>
-
-
-            {/* CAPACIDAD */}
-
-            <div className="capacity-box">
-
-              <span>
-                {capacidadDisponible === null
-                  ? "Capacidad disponible"
-                  : "Capacidad disponible para estas fechas"}
-              </span>
-
-              <strong>
-
-                {consultandoCapacidad
-                  ? "Consultando..."
-                  : capacidadDisponible === null
-                    ? "Seleccioná las fechas"
-                    : `${capacidadDisponible} ${
-                        capacidadDisponible === 1
-                          ? "persona"
-                          : "personas"
-                      }`}
-
-              </strong>
-
-            </div>
-
 
             <form
               onSubmit={enviarReserva}
@@ -527,7 +703,6 @@ function App() {
 
               </label>
 
-
               <label>
 
                 Email
@@ -544,7 +719,6 @@ function App() {
 
               </label>
 
-
               <label>
 
                 ¿Cuántas personas?
@@ -555,21 +729,12 @@ function App() {
                   value={formulario.personas}
                   onChange={actualizarFormulario}
                   min="1"
-                  max={
-                    capacidadDisponible !== null &&
-                    capacidadDisponible > 0
-                      ? capacidadDisponible
-                      : 36
-                  }
+                  max={CAPACIDAD_TOTAL}
                   placeholder="Cantidad de personas"
-                  disabled={
-                    enviando ||
-                    capacidadDisponible === 0
-                  }
+                  disabled={enviando}
                 />
 
               </label>
-
 
               <div className="date-fields">
 
@@ -593,7 +758,6 @@ function App() {
                   }}
                 />
 
-
                 <CalendarPicker
                   label="Fecha de salida"
                   value={formulario.salida}
@@ -612,29 +776,20 @@ function App() {
 
               </div>
 
-
-              {capacidadDisponible === 0 && (
-                <div className="reservation-error">
-                  ⚠️ No hay capacidad disponible para esas fechas.
-                  Seleccioná otras fechas.
-                </div>
-              )}
-
-
               {error && (
+
                 <div className="reservation-error">
                   ⚠️ {error}
                 </div>
-              )}
 
+              )}
 
               <button
                 type="submit"
                 className="submit-reservation"
                 disabled={
                   enviando ||
-                  consultandoCapacidad ||
-                  capacidadDisponible === 0
+                  consultandoCapacidad
                 }
               >
 
